@@ -293,6 +293,38 @@
     <ul id="drawer-notes" class="notes"></ul>
     <figure id="drawer-chart" class="chart" hidden></figure>
 
+    <section id="drawer-dca-section" class="drawer-section" hidden>
+      <h3>Gợi ý DCA</h3>
+      <div class="dca-controls">
+        <div id="dca-target" class="seg-group" role="group" aria-label="Mục tiêu khi bán">
+          <button type="button" class="seg-btn active" data-dca-target="0">Hòa vốn</button>
+          <button type="button" class="seg-btn" data-dca-target="5">Lãi 5%</button>
+          <button type="button" class="seg-btn" data-dca-target="10">Lãi 10%</button>
+          <button type="button" class="seg-btn" data-dca-target="20">Lãi 20%</button>
+        </div>
+        <label class="dca-amount">Mỗi mốc
+          <input id="dca-amount" type="number" min="1" step="any" inputmode="decimal">
+          USDT
+        </label>
+      </div>
+      <p id="dca-summary" class="dca-summary"></p>
+      <div class="panel table-card">
+        <table id="dca-table" class="mini-table">
+          <thead>
+            <tr>
+              <th scope="col" class="left">Mốc mua</th>
+              <th scope="col">Mua thêm</th>
+              <th scope="col">Giá TB mới</th>
+              <th scope="col">Giá cần bán</th>
+              <th scope="col">Cần tăng từ mốc</th>
+            </tr>
+          </thead>
+          <tbody id="dca-body"></tbody>
+        </table>
+      </div>
+      <p id="dca-foot" class="dca-foot"></p>
+    </section>
+
     <section id="drawer-orders-section" class="drawer-section" hidden>
       <h3>Lệnh đang chờ khớp</h3>
       <div class="panel table-card">

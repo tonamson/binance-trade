@@ -18,7 +18,7 @@ function domEl(tag, cls, children = []) {
   return el;
 }
 
-export function computeChartBounds(fills, history, currentPrice, openOrders = []) {
+export function computeChartBounds(fills, history, currentPrice, openOrders = [], extraPrices = []) {
   const baseValues = [
     ...fills.map((x) => x.price),
     ...history.filter((x) => x.qtyAfter > 0).map((x) => x.avgAfter),
@@ -35,7 +35,7 @@ export function computeChartBounds(fills, history, currentPrice, openOrders = []
     else outOfRangeOrders.push(o);
   }
 
-  const allValues = [...baseValues, ...inRangeOrders.map((o) => o.price)];
+  const allValues = [...baseValues, ...inRangeOrders.map((o) => o.price), ...extraPrices.filter((p) => p > 0)];
   let lo = Math.min(...allValues);
   let hi = Math.max(...allValues);
   const padY = (hi - lo || hi || 1) * 0.1;
@@ -44,7 +44,11 @@ export function computeChartBounds(fills, history, currentPrice, openOrders = []
   return { lo, hi, baseLo, baseHi, inRangeOrders, outOfRangeOrders };
 }
 
-export function renderPriceChart({ history, currentPrice, openOrders = [] }) {
+/**
+ * @param dcaLevels [{ price, label }] suggested ladder buy levels
+ * @param dcaExit   { price, label } sell price that reaches the goal once the whole ladder fills, or null
+ */
+export function renderPriceChart({ history, currentPrice, openOrders = [], dcaLevels = [], dcaExit = null }) {
   const fills = history.filter((x) => x.side !== 'FEE' && x.qty > 0);
   if (fills.length < 2) return null;
 
@@ -58,7 +62,8 @@ export function renderPriceChart({ history, currentPrice, openOrders = [] }) {
   const times = fills.map((x) => x.time);
   const t0 = Math.min(...times);
   const t1 = Math.max(...times, t0 + 1);
-  const { lo, hi, inRangeOrders, outOfRangeOrders } = computeChartBounds(fills, history, currentPrice, openOrders);
+  const dcaPrices = [...dcaLevels.map((lv) => lv.price), ...(dcaExit ? [dcaExit.price] : [])];
+  const { lo, hi, inRangeOrders, outOfRangeOrders } = computeChartBounds(fills, history, currentPrice, openOrders, dcaPrices);
 
   const x = (t) => L + ((t - t0) / (t1 - t0)) * (W - L - R);
   const y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
@@ -147,6 +152,25 @@ export function renderPriceChart({ history, currentPrice, openOrders = [] }) {
     );
   }
 
+  // Suggested DCA ladder: labels sit inside the plot so they never collide with the right-hand axis tags.
+  // On a wide price range neighbouring steps are only a few px apart, so labels too close to the previous one are dropped.
+  const LABEL_GAP = 10;
+  let lastLabelY = -Infinity;
+  for (const lv of [...dcaLevels].sort((a, b) => b.price - a.price)) {
+    const ly = y(lv.price);
+    svg.append(svgEl('line', { class: 'dca-line', x1: L, x2: W - R, y1: ly.toFixed(1), y2: ly.toFixed(1) }));
+    if (ly - lastLabelY < LABEL_GAP) continue;
+    lastLabelY = ly;
+    svg.append(svgEl('text', { class: 'dca-tag', x: L + 4, y: (ly - 3).toFixed(1) }, lv.label));
+  }
+  if (dcaExit) {
+    const ey = y(dcaExit.price).toFixed(1);
+    svg.append(
+      svgEl('line', { class: 'dca-exit', x1: L, x2: W - R, y1: ey, y2: ey }),
+      svgEl('text', { class: 'dca-exit-tag', x: W - R - 4, y: Number(ey) - 3, 'text-anchor': 'end' }, dcaExit.label),
+    );
+  }
+
   const crosshair = svgEl('line', { class: 'crosshair', x1: 0, x2: 0, y1: T, y2: H - B, visibility: 'hidden' });
   svg.append(crosshair);
 
@@ -208,6 +232,8 @@ export function renderPriceChart({ history, currentPrice, openOrders = [] }) {
     key('sell', 'Bán'),
     currentPrice != null ? key('now', `Hiện tại ${fmtPrice(currentPrice)}`) : null,
     inRangeOrders.length > 0 ? key('ord', `${inRangeOrders.length} lệnh chờ`) : null,
+    dcaLevels.length > 0 ? key('dca', 'Mốc DCA') : null,
+    dcaExit ? key('dca-exit', 'Giá cần bán sau DCA') : null,
   ]));
   return out;
 }

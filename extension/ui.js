@@ -2,6 +2,8 @@
 import { fmtUsd, fmtSignedUsd, fmtPrice, fmtQty, fmtPct, fmtTime, fmtClock } from './format.js';
 import { renderPriceChart } from './chart.js';
 import { sortNullLast } from './orders.js';
+import { STABLES } from './cost.js';
+import { planDca, defaultDcaAmount } from './dca.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -177,6 +179,78 @@ function setStat(id, text, n, base = 'kpi-val num') {
   el.className = base + (n == null ? '' : ' ' + tone(n));
 }
 
+/** Renders the DCA section and returns what the chart should draw, or null when there is nothing to suggest. */
+function renderDca(state, row, coinOrders) {
+  const canPlan = row.avg != null && row.price != null && row.knownQty > 0 && row.costHeld > 0;
+  $('drawer-dca-section').hidden = !canPlan;
+  if (!canPlan) return null;
+
+  const defaultAmount = defaultDcaAmount(row.costHeld);
+  const amount = state.dcaAmount ?? defaultAmount;
+  const input = $('dca-amount');
+  input.placeholder = String(defaultAmount);
+  if (document.activeElement !== input) input.value = String(amount);
+  for (const btn of $('dca-target').querySelectorAll('button')) {
+    btn.classList.toggle('active', Number(btn.dataset.dcaTarget) === state.dcaTarget);
+  }
+
+  // Only USDT-like quotes: their limit price is directly comparable to the USDT ladder.
+  const buyOrders = coinOrders
+    .filter((o) => o.side === 'BUY' && STABLES.has(o.quote) && o.price > 0 && o.remainingQty > 0)
+    .map((o) => ({ price: o.price, amount: o.remainingQty * o.price }));
+  const plan = planDca({ qty: row.knownQty, cost: row.costHeld, price: row.price, amount, targetPct: state.dcaTarget, buyOrders });
+  const goal = state.dcaTarget === 0 ? 'hòa vốn' : `lãi ${state.dcaTarget}%`;
+  const reached = plan.base.risePct <= 0;
+
+  $('dca-table').closest('.table-card').hidden = reached;
+  $('dca-foot').hidden = reached;
+  if (reached) {
+    $('dca-summary').replaceChildren(
+      `Giá hiện tại đã vượt mức ${goal} (`, h('b', {}, fmtPrice(plan.base.target)), '). Không cần DCA để đạt mục tiêu này.',
+    );
+  } else {
+    const last = plan.rows.at(-1);
+    const spent = plan.rows.reduce((sum, r) => sum + r.amount, 0);
+    $('dca-summary').replaceChildren(
+      `Giữ nguyên: giá cần tăng `, h('b', {}, fmtPct(plan.base.risePct)), ' (lên ', h('b', {}, fmtPrice(plan.base.target)), `) để ${goal}.`,
+      last ? ` Nếu khớp hết ${plan.rows.length} mốc (thêm ${fmtUsd(spent)} USDT), giá TB về ` : '',
+      last ? h('b', {}, fmtPrice(last.avg)) : '',
+      last ? ' và chỉ cần hồi ' : '',
+      last ? h('b', {}, fmtPct(last.risePct)) : '',
+      last ? ` từ mốc cuối để ${goal}.` : '',
+    );
+  }
+
+  $('dca-body').replaceChildren(...plan.rows.map((r) => h('tr', {}, [
+    h('td', { class: 'left' }, [
+      fmtPrice(r.price),
+      r.source === 'order'
+        ? h('span', { class: 'tag ord' }, 'Lệnh chờ')
+        : h('span', { class: 'dca-level-sub' }, r.dropPct < 0.05 ? 'Giá hiện tại' : fmtPct(-r.dropPct)),
+    ]),
+    h('td', {}, `${fmtUsd(r.amount)} USDT`),
+    h('td', {}, fmtPrice(r.avg)),
+    h('td', {}, fmtPrice(r.target)),
+    h('td', {}, fmtPct(r.risePct)),
+  ])));
+
+  const unknown = row.unknownQty > 0
+    ? ` Chỉ tính trên ${fmtQty(row.knownQty)} ${row.asset} có giá vốn; ${fmtQty(row.unknownQty)} chưa rõ vốn không được tính.`
+    : '';
+  $('dca-foot').textContent = 'Mỗi dòng giả định các mốc phía trên đã khớp. Đã tính phí 0,1% khi mua và khi bán.' +
+    unknown + ' Đây là phép tính tham khảo, không phải khuyến nghị đầu tư.';
+
+  if (reached) return null;
+  const last = plan.rows.at(-1);
+  return {
+    // The current-price step coincides with the "now" line, so it is not drawn twice.
+    levels: plan.rows
+      .filter((r) => r.source === 'step' && r.dropPct >= 0.05)
+      .map((r) => ({ price: r.price, label: `DCA ${fmtPct(-r.dropPct)}` })),
+    exit: last ? { price: last.target, label: `Bán ${fmtPrice(last.target)} = ${goal} sau DCA` } : null,
+  };
+}
+
 function renderDrawer(state, colors) {
   const asset = state.drawerAsset;
   const open = Boolean(asset);
@@ -229,11 +303,20 @@ function renderDrawer(state, colors) {
   }
   $('drawer-notes').replaceChildren(...notes);
 
+  const dca = renderDca(state, row, coinOrders);
+  const dcaKey = dca ? `${dca.levels.length}/${dca.exit?.price ?? ''}` : '';
+
   const chronological = pos?.history ?? [];
-  const nextChartKey = `${asset}:${chronological.length}:${row.price ?? ''}:${coinOrders.map((o) => `${o.orderId}@${o.price}`).join(',')}`;
+  const nextChartKey = `${asset}:${chronological.length}:${row.price ?? ''}:${coinOrders.map((o) => `${o.orderId}@${o.price}`).join(',')}:${dcaKey}`;
   if (nextChartKey !== chartKey && !$('drawer-chart').matches(':hover')) {
     chartKey = nextChartKey;
-    const chart = renderPriceChart({ history: chronological, currentPrice: row.price, openOrders: coinOrders });
+    const chart = renderPriceChart({
+      history: chronological,
+      currentPrice: row.price,
+      openOrders: coinOrders,
+      dcaLevels: dca?.levels ?? [],
+      dcaExit: dca?.exit ?? null,
+    });
     $('drawer-chart').hidden = !chart;
     $('drawer-chart').replaceChildren(...(chart ?? []));
   }

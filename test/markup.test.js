@@ -17,6 +17,7 @@ const REQUIRED_DOM_IDS = [
   'panel-holdings', 'search', 'holdings-filters', 'hide-small', 'row-count', 'holdings', 'holdings-body', 'empty', 'empty-text', 'empty-sync',
   'panel-orders', 'orders-summary-buy', 'orders-summary-sell', 'orders-error', 'orders-error-text', 'orders-retry', 'order-search', 'order-side-filters', 'order-type-filters', 'order-count', 'open-orders', 'open-orders-body', 'orders-empty', 'orders-empty-text',
   'drawer-backdrop', 'drawer', 'drawer-avatar', 'drawer-title', 'drawer-price', 'drawer-change24h', 'drawer-close', 'drawer-avg', 'drawer-now', 'drawer-cost', 'drawer-realized', 'drawer-balance-sub', 'drawer-notes', 'drawer-chart', 'drawer-orders-section', 'drawer-orders-body', 'drawer-history-body',
+  'drawer-dca-section', 'dca-target', 'dca-amount', 'dca-summary', 'dca-table', 'dca-body', 'dca-foot',
   'settings', 'key-masked', 'key-change', 'key-remove', 'scan-full', 'extra-form', 'extra-asset', 'extra-error', 'extra-list', 'export-sqlite', 'export-csv', 'wipe', 'confirm', 'confirm-text', 'confirm-ok'
 ];
 
@@ -41,6 +42,11 @@ const REQUIRED_CHART_SELECTORS = [
   '.sell',
   'figcaption',
   '.key',
+  '.dca-line',
+  '.dca-tag',
+  '.dca-exit',
+  '.dca-exit-tag',
+  '.key.dca',
 ];
 
 test('dashboard.html contains all required DOM IDs for Obsidian Pro Terminal', () => {

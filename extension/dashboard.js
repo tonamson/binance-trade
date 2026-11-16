@@ -32,6 +32,8 @@ const state = {
   retry: null,
   live: false,
   drawerAsset: null,
+  dcaTarget: 0,
+  dcaAmount: null, // null = per-coin default from its cost
   keyWarning: false,
   keyError: null,
   keyBusy: false,
@@ -320,6 +322,7 @@ async function wipe() {
 
 function openDrawer(asset, triggerEl = document.activeElement) {
   lastFocusEl = triggerEl;
+  if (asset !== state.drawerAsset) state.dcaAmount = null;
   state.drawerAsset = asset;
   update();
   $('drawer').focus();
@@ -385,6 +388,17 @@ function wire() {
     const asset = e.target.closest('[data-drawer-asset]')?.dataset.drawerAsset;
     if (asset) openDrawer(asset, e.target.closest('button'));
   });
+
+  $('dca-target').addEventListener('click', (e) => {
+    const t = e.target.closest('[data-dca-target]')?.dataset.dcaTarget;
+    if (t != null) { state.dcaTarget = Number(t); update(); }
+  });
+  $('dca-amount').addEventListener('input', (e) => {
+    const n = Number(e.target.value);
+    state.dcaAmount = e.target.value !== '' && n > 0 ? n : null;
+    update();
+  });
+  $('dca-amount').addEventListener('blur', update);
 
   $('drawer-close').addEventListener('click', closeDrawer);
   $('drawer-backdrop').addEventListener('click', closeDrawer);
@@ -510,7 +524,7 @@ async function bootDemo() {
   if (view === 'syncing') state.sync = { phase: 'trades', done: 12, total: 140, symbol: 'BTCUSDT', newTrades: 3204, stopping: false };
   if (view === 'error') state.error = 'Không kết nối được tới Binance. Kiểm tra mạng rồi thử lại.';
   if (view === 'orders') state.tab = 'orders';
-  if (view === 'drawer') state.drawerAsset = 'BTC';
+  if (view === 'drawer') state.drawerAsset = params.get('asset')?.toUpperCase() || 'BTC';
   if (view === 'empty') {
     state.rows = [];
     state.summary = summarize([]);

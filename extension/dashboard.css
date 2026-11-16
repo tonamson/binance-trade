@@ -384,6 +384,15 @@ tbody tr + tr td { border-top: 1px solid var(--border); }
 .drawer-section { display: grid; gap: 8px; }
 .drawer-section h3 { font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted); }
 
+.dca-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dca-amount { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-muted); }
+.dca-amount input { width: 110px; }
+.dca-summary { font-size: 12.5px; color: var(--ink); line-height: 1.5; }
+.dca-summary:empty { display: none; }
+.dca-summary b { color: var(--ink-strong); font-family: var(--mono); font-weight: 600; }
+.dca-foot { font-size: 11.5px; color: var(--ink-muted); line-height: 1.5; }
+.dca-level-sub { display: block; font-size: 11px; color: var(--ink-muted); }
+
 .detail-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .detail-stats div { padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; min-width: 0; }
 .detail-stats dt { font-size: 11.5px; color: var(--ink-muted); }
@@ -412,6 +421,10 @@ tbody tr + tr td { border-top: 1px solid var(--border); }
 .chart .axis-tag.now-tag { fill: var(--ink-strong); }
 .chart .axis-tag.order-buy { fill: var(--up); }
 .chart .axis-tag.order-sell { fill: var(--down); }
+.chart .dca-line { stroke: var(--info); stroke-width: 1; stroke-dasharray: 1 4; opacity: 0.7; }
+.chart .dca-tag { fill: var(--info); font-size: 9px; font-weight: 600; opacity: 0.85; }
+.chart .dca-exit { stroke: #a78bfa; stroke-width: 1.25; stroke-dasharray: 6 3; }
+.chart .dca-exit-tag { fill: #a78bfa; font-size: 9.5px; font-weight: 600; }
 .chart .crosshair { stroke: var(--border-strong); stroke-width: 1; stroke-dasharray: 2 2; pointer-events: none; }
 .chart .buy { fill: var(--up); stroke: var(--bg); stroke-width: 1.5; cursor: pointer; }
 .chart .sell { fill: var(--down); stroke: var(--bg); stroke-width: 1.5; cursor: pointer; }
@@ -431,6 +444,8 @@ tbody tr + tr td { border-top: 1px solid var(--border); }
 .key { display: inline-block; width: 14px; height: 2px; background: var(--accent); }
 .key.now { background: none; border-top: 1px dashed var(--ink-muted); height: 0; }
 .key.ord { background: none; border-top: 1px dashed var(--up); height: 0; }
+.key.dca { background: none; border-top: 1px dotted var(--info); height: 0; }
+.key.dca-exit { background: none; border-top: 1px dashed #a78bfa; height: 0; }
 .key.buy, .key.sell { width: 8px; height: 8px; border-radius: 50%; }
 .key.buy { background: var(--up); }
 .key.sell { background: var(--down); }
