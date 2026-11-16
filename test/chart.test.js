@@ -58,6 +58,15 @@ test('renderPriceChart trả về null khi fills < 2', () => {
     }),
     null
   );
+  assert.equal(
+    renderPriceChart({
+      history: [
+        { side: 'BUY', qty: 1, price: 100, time: 1000, unpriced: true },
+        { side: 'BUY', qty: 1, price: 100, time: 2000 },
+      ],
+    }),
+    null
+  );
 });
 
 test('renderPriceChart dựng đầy đủ SVG, đường trung bình, tooltip tương tác và banner ngoài khung', () => {

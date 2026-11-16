@@ -42,7 +42,32 @@ test('pickSymbols nhanh', () => {
 
 test('pickSymbols nhanh, không extra', () => {
   const got = pickSymbols({ exchangeSymbols: EX, balances: { BTC: 1 }, knownSymbols: ['SOLUSDT'], extraAssets: [], full: false });
-  assert.deepEqual(names(got), ['BTCUSDT', 'BTCFDUSD', 'SOLUSDT']);
+  assert.deepEqual(names(got), ['BTCUSDT', 'BTCFDUSD', 'ETHBTC', 'SOLUSDT']);
+});
+
+test('pickSymbols mở rộng: nhận diện quote phi-stable và openOrderSymbols', () => {
+  // Chỉ có USDT, có lệnh chờ trên SOLUSDT
+  const got1 = pickSymbols({
+    exchangeSymbols: EX,
+    balances: { USDT: 100 },
+    knownSymbols: [],
+    extraAssets: [],
+    openOrderSymbols: ['SOLUSDT'],
+    full: false,
+  });
+  // USDT là stable nên không match bừa bãi mọi cặp *USDT, chỉ match cặp open orders SOLUSDT
+  assert.deepEqual(names(got1), ['SOLUSDT']);
+
+  // Có số dư BTC (phi-stable): match base BTC và quote BTC (ETHBTC)
+  const got2 = pickSymbols({
+    exchangeSymbols: EX,
+    balances: { BTC: 0.5 },
+    knownSymbols: [],
+    extraAssets: [],
+    openOrderSymbols: [],
+    full: false,
+  });
+  assert.deepEqual(names(got2), ['BTCUSDT', 'BTCFDUSD', 'ETHBTC']);
 });
 
 test('pickSymbols toàn bộ', () => {

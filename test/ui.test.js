@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { visibleRows } from '../extension/ui.js';
+import { visibleRows, historyRow } from '../extension/ui.js';
 
 const baseState = {
   query: '',
@@ -56,4 +56,34 @@ test('visibleRows giữ lại dust coin khi hideSmall = false', () => {
 test('visibleRows sort theo key và dir với null xếp cuối cùng', () => {
   const sortedAsc = visibleRows({ ...baseState, sort: { key: 'value', dir: 'asc' } });
   assert.deepEqual(sortedAsc.map((r) => r.asset), ['ARB', 'BTC', 'NOPRICE']);
+});
+
+test('historyRow hiển thị lệnh unpriced chuẩn xác', () => {
+  const prevDoc = globalThis.document;
+  globalThis.document = {
+    createElement: (tag) => ({
+      tag,
+      setAttribute() {},
+      children: [],
+      append(...items) { this.children.push(...items); },
+    }),
+  };
+  try {
+    const tr = {
+      time: 1700000000000,
+      symbol: 'ALTXYZ',
+      side: 'BUY',
+      qty: 10,
+      price: 0,
+      fee: 0,
+      feeAsset: 'XYZ',
+      unpriced: true,
+    };
+    const row = historyRow(tr);
+    assert.equal(row.children[3].children[0], '—');
+    assert.equal(row.children[6].children[0], '— (chưa có giá)');
+  } finally {
+    if (prevDoc) globalThis.document = prevDoc;
+    else delete globalThis.document;
+  }
 });

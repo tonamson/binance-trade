@@ -177,6 +177,18 @@ function setStat(id, text, n, base = 'kpi-val num') {
   el.className = base + (n == null ? '' : ' ' + tone(n));
 }
 
+export function historyRow(x) {
+  return h('tr', {}, [
+    h('td', { class: 'left' }, fmtTime(x.time)),
+    h('td', { class: 'left' }, x.symbol),
+    h('td', { class: 'left side-' + x.side }, SIDE[x.side]),
+    h('td', {}, x.unpriced ? '—' : fmtPrice(x.price)),
+    h('td', {}, fmtQty(x.qty)),
+    h('td', { class: 'muted' }, x.fee > 0 ? `${fmtQty(x.fee)} ${x.feeAsset}` : '—'),
+    h('td', {}, x.unpriced ? '— (chưa có giá)' : (x.qtyAfter > 0 ? fmtPrice(x.avgAfter) : '—')),
+  ]);
+}
+
 function renderDrawer(state, colors) {
   const asset = state.drawerAsset;
   const open = Boolean(asset);
@@ -227,6 +239,9 @@ function renderDrawer(state, colors) {
   if (movedOut(row)) {
     notes.push(h('li', { class: 'plain' }, `Đã chuyển ${fmtQty(row.movedOutQty)} ${asset} ra khỏi ví Spot (rút, Earn, Funding). Giá trung bình không đổi.`));
   }
+  if (row.warn.includes('unknown')) {
+    notes.push(h('li', { class: 'plain' }, 'Mẹo: Nếu coin này từng mua bằng Spot nhưng đã bán hết rồi mua lại hoặc chưa đồng bộ đủ, hãy dùng Quét toàn bộ trong Cài đặt.'));
+  }
   $('drawer-notes').replaceChildren(...notes);
 
   const chronological = pos?.history ?? [];
@@ -256,15 +271,7 @@ function renderDrawer(state, colors) {
     historyKey = nextHistoryKey;
     const history = [...chronological].reverse();
     $('drawer-history-body').replaceChildren(...(history.length
-      ? history.map((x) => h('tr', {}, [
-          h('td', { class: 'left' }, fmtTime(x.time)),
-          h('td', { class: 'left' }, x.symbol),
-          h('td', { class: 'left side-' + x.side }, SIDE[x.side]),
-          h('td', {}, fmtPrice(x.price)),
-          h('td', {}, fmtQty(x.qty)),
-          h('td', { class: 'muted' }, x.fee > 0 ? `${fmtQty(x.fee)} ${x.feeAsset}` : '—'),
-          h('td', {}, x.qtyAfter > 0 ? fmtPrice(x.avgAfter) : '—'),
-        ]))
+      ? history.map(historyRow)
       : [h('tr', {}, h('td', { class: 'left muted', colspan: '7' }, 'Chưa có lịch sử khớp lệnh Spot cho coin này.'))]));
   }
 }

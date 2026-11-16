@@ -79,6 +79,9 @@ test('không quy đổi được', () => {
   const { ALT, XYZ } = computePositions([t('ALTXYZ', 'ALT', 'XYZ', true, 10, 5)], none);
   check(ALT, { qty: 0, unpriced: true });
   assert.equal(XYZ.unpriced, true);
+  assert.equal(ALT.history.length, 1);
+  assert.equal(ALT.history[0].unpriced, true);
+  assert.equal(ALT.history[0].symbol, 'ALTXYZ');
 });
 
 test('bụi số thực', () => {

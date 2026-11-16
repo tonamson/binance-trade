@@ -174,11 +174,13 @@ async function runSync(full) {
     const exchangeSymbols = await getExchange();
     const held = await api.account();
     const cursors = await db.getCursors();
+    const openOrderSymbols = (state.rawOpenOrders ?? []).map((o) => o.symbol).filter(Boolean);
     const symbols = pickSymbols({
       exchangeSymbols,
       balances: held,
       knownSymbols: cursors.filter((c) => c.last_trade_id != null).map((c) => c.symbol),
       extraAssets: state.extraAssets,
+      openOrderSymbols,
       full,
     });
     const skipSyncedSince = full ? Date.now() - 3_600_000 : Infinity;

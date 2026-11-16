@@ -17,7 +17,7 @@ export function computePositions(trades, priceAt) {
       asset, qty: 0, cost: 0, avg: 0, realized: 0, oversold: false, unpriced: false, history: [],
     });
 
-  const record = (p, trade, side, qty, usdt) => {
+  const record = (p, trade, side, qty, usdt, extra = {}) => {
     p.history.push({
       time: trade.time, symbol: trade.symbol, tradeId: trade.id, side, qty, usdt,
       price: qty > 0 ? usdt / qty : 0,
@@ -25,6 +25,7 @@ export function computePositions(trades, priceAt) {
       avgAfter: p.qty > 0 ? p.cost / p.qty : 0,
       fee: side === 'FEE' ? 0 : trade.commission,
       feeAsset: trade.commissionAsset,
+      ...extra,
     });
   };
 
@@ -68,8 +69,16 @@ export function computePositions(trades, priceAt) {
 
     const quoteUsdt = usdtValue(quote, quoteQty, time);
     if (quoteUsdt == null) {
-      pos(base).unpriced = true;
-      pos(quote).unpriced = true;
+      const pBase = pos(base);
+      const pQuote = pos(quote);
+      pBase.unpriced = true;
+      pQuote.unpriced = true;
+      if (!STABLES.has(base)) {
+        record(pBase, tr, tr.isBuyer ? 'BUY' : 'SELL', qty, 0, { unpriced: true });
+      }
+      if (!STABLES.has(quote)) {
+        record(pQuote, tr, tr.isBuyer ? 'SELL' : 'BUY', quoteQty, 0, { unpriced: true });
+      }
       continue;
     }
 

@@ -45,7 +45,7 @@ export function computeChartBounds(fills, history, currentPrice, openOrders = []
 }
 
 export function renderPriceChart({ history, currentPrice, openOrders = [] }) {
-  const fills = history.filter((x) => x.side !== 'FEE' && x.qty > 0);
+  const fills = history.filter((x) => x.side !== 'FEE' && x.qty > 0 && !x.unpriced && x.price > 0);
   if (fills.length < 2) return null;
 
   const W = 740;

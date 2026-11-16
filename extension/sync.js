@@ -7,13 +7,17 @@ const MINUTE = 60_000;
 const MYTRADES_WEIGHT = 20;
 const WEIGHT_PER_MINUTE = 4800; // matches the pause threshold in binance.js
 
-/** Quick scan: pairs whose base coin is held, was added by hand, or already has trades. Full: everything. */
-export function pickSymbols({ exchangeSymbols, balances, knownSymbols, extraAssets, full }) {
+/** Quick scan: pairs whose base/crypto quote coin is held, in open orders, was added by hand, or already has trades. Full: everything. */
+export function pickSymbols({ exchangeSymbols, balances = {}, knownSymbols = [], extraAssets = [], openOrderSymbols = [], full }) {
   if (full) return exchangeSymbols;
   const assets = new Set([...Object.keys(balances), ...extraAssets]);
-  const known = new Set(knownSymbols);
+  const known = new Set([...knownSymbols, ...openOrderSymbols]);
   // No status filter on purpose: halted pairs still hold trade history.
-  return exchangeSymbols.filter((s) => assets.has(s.base) || known.has(s.symbol));
+  return exchangeSymbols.filter((s) =>
+    assets.has(s.base) ||
+    (assets.has(s.quote) && !STABLES.has(s.quote)) ||
+    known.has(s.symbol)
+  );
 }
 
 export function estimateMinutes(symbolCount) {
